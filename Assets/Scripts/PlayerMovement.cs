@@ -2,6 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// enum for different states of player
+public enum PlayerState
+{
+    walk,
+    attack,
+    interact
+}
 public class PlayerMovement : MonoBehaviour
 {
     #region Variables
@@ -17,17 +24,26 @@ public class PlayerMovement : MonoBehaviour
     // Reference to the animator componant
     private Animator animator;
 
+    // Refernce to the enum
+    public PlayerState currentState;
+
     #endregion
 
     #region Methods
     // Start is called before the first frame update
     void Start()
     {
+        currentState = PlayerState.walk;
+
         // Complete refernce to animator
         animator = GetComponent<Animator>();
 
         // Complete reference to players rigidbody.
         myRigidbody = GetComponent<Rigidbody2D>();
+
+        // give animtor intial 
+        animator.SetFloat("moveX", 0);
+        animator.SetFloat("moveY", -1);
     }
 
     // Update is called once per frame
@@ -40,7 +56,25 @@ public class PlayerMovement : MonoBehaviour
         change.x = Input.GetAxisRaw("Horizontal");
         change.y = Input.GetAxisRaw("Vertical");
 
-        UpdateAnimationAndMove();
+        if (Input.GetButtonDown("attack") && currentState != PlayerState.attack)
+        {
+            StartCoroutine(AttackCo());
+        }
+       else if (currentState == PlayerState.walk)
+        {
+            UpdateAnimationAndMove();
+        }
+    }
+
+    // coroutine method that runs in parralel to the main process and allows you to build in specific delays.
+    private IEnumerator AttackCo()
+    {
+        animator.SetBool("attacking", true);
+        currentState = PlayerState.attack;
+        yield return null; // wait 1 frame
+        animator.SetBool("attacking", false);
+        yield return new WaitForSeconds(.3f);
+        currentState = PlayerState.walk;
     }
 
     void UpdateAnimationAndMove()
@@ -62,7 +96,9 @@ public class PlayerMovement : MonoBehaviour
     }
 
     void MoveCharacter()
-    {
+    { 
+        // Normalise the position
+        change.Normalize();
         // Move player each frame
         myRigidbody.MovePosition(transform.position + change * speed * Time.deltaTime);
     }
